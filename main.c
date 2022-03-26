@@ -4,10 +4,13 @@
 #define SCREEN_WIDTH 1080
 #define SCREEN_HEIGHT 720
 
+#define FRAME_RATE 120
+
 typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, ENDING} GameScreen;
 
 typedef struct Ball {
     float speed;
+    float deltaSpeed;
     float radius;
     Color color;
     Vector2 pos;
@@ -15,6 +18,7 @@ typedef struct Ball {
 
 typedef struct Paddle {
     float speed;
+    float deltaSpeed;
     float width;
     float height;
     Color color;
@@ -24,31 +28,31 @@ typedef struct Paddle {
 int main(void) {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Pong\tFPS: Calculating...");
 
-    paddle pongPaddle = { 2, 20, 125, BLACK, {100, 100}};
-    ball pongBall = { 2, 50, BLACK, {SCREEN_WIDTH/2, SCREEN_HEIGHT/2}};
+    paddle pongPaddle = { 2, 0, 20, 125, BLACK, {25, 100}};
+    ball pongBall = { 2, 0, 50, BLACK, {SCREEN_WIDTH/2, SCREEN_HEIGHT/2}};
 
     GameScreen currScreen = LOGO;
     char windowTitle[255] = {};
     int framesCounter = 0;
 
-    double lastTime = GetTime();
-    double deltaTime = 0, nowTime = 0;
+    float lastFrame = 0.0f, currentFrame = 0.0f;
+    float deltaTime = 0.0f;
 
-    SetTargetFPS(60);
+    SetTargetFPS(FRAME_RATE);
 
     while (!WindowShouldClose()) {
-        
-        nowTime = GetTime();
-        deltaTime += (nowTime - lastTime);
-        lastTime = nowTime;
-
+        lastFrame = currentFrame;
+        currentFrame = GetTime();
+        deltaTime = (currentFrame - lastFrame) * 100;
+        pongBall.deltaSpeed = pongBall.speed * deltaTime;
+        pongPaddle.deltaSpeed = pongPaddle.speed * deltaTime;
         sprintf(windowTitle, "Pong\tFPS: %i", GetFPS());
 
         switch(currScreen){
             case LOGO:
                 framesCounter++;
 
-                if(framesCounter > 120)
+                if(framesCounter > FRAME_RATE * 2)
                     currScreen = TITLE;
 
                 break;
@@ -71,22 +75,32 @@ int main(void) {
         }
 
         if(pongBall.pos.x < (SCREEN_WIDTH - pongBall.radius + 1)){      // && pongBall.pos.x < SCREEN_WIDTH){
-            if (IsKeyDown(KEY_RIGHT)) pongBall.pos.x += pongBall.speed;
+            if (IsKeyDown(KEY_RIGHT)) pongBall.pos.x += pongBall.deltaSpeed;
         } else
             pongBall.pos.x--;
         if(pongBall.pos.x > (0 + pongBall.radius - 1)){
-            if (IsKeyDown(KEY_LEFT)) pongBall.pos.x -= pongBall.speed;
+            if (IsKeyDown(KEY_LEFT)) pongBall.pos.x -= pongBall.deltaSpeed;
         } else
             pongBall.pos.x++;
         
         if(pongBall.pos.y < (SCREEN_HEIGHT - pongBall.radius + 1)){
-            if (IsKeyDown(KEY_DOWN)) pongBall.pos.y += pongBall.speed;
+            if (IsKeyDown(KEY_DOWN)) pongBall.pos.y += pongBall.deltaSpeed;
         } else 
             pongBall.pos.y--;
         if(pongBall.pos.y > (0 + pongBall.radius - 1)){
-            if (IsKeyDown(KEY_UP)) pongBall.pos.y -= pongBall.speed;
+            if (IsKeyDown(KEY_UP)) pongBall.pos.y -= pongBall.deltaSpeed;
         } else
             pongBall.pos.y++;
+
+        // paddle controls
+        if(pongPaddle.pos.y < (SCREEN_HEIGHT - pongPaddle.height + 1)){
+            if(IsKeyDown(KEY_DOWN)) pongPaddle.pos.y += pongPaddle.deltaSpeed;
+        } else
+            pongPaddle.pos.y--;
+        if(pongPaddle.pos.y > (0)){
+            if(IsKeyDown(KEY_UP)) pongPaddle.pos.y -= pongPaddle.deltaSpeed;
+        } else
+            pongPaddle.pos.y++;
 
         BeginDrawing();
             ClearBackground(RAYWHITE);
@@ -105,8 +119,12 @@ int main(void) {
                     break;
 
                 case GAMEPLAY:
-                    // TODO: Draw GAMEPLAY screen here!
                     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, PURPLE);
+
+                    DrawRectangle(pongPaddle.pos.x, pongPaddle.pos.y, pongPaddle.width, pongPaddle.height, pongPaddle.color);
+                    DrawCircleV(pongBall.pos, pongBall.radius, pongBall.color);
+                    SetWindowTitle(windowTitle);
+
                     DrawText("GAMEPLAY SCREEN", 20, 20, 40, MAROON);
                     DrawText("PRESS ENTER or TAP to JUMP to ENDING SCREEN", 130, 220, 20, MAROON);
                     break;
@@ -119,10 +137,6 @@ int main(void) {
                     break;
                 default: break;
             }
-
-            DrawRectangle(pongPaddle.pos.x, pongPaddle.pos.y, pongPaddle.width, pongPaddle.height, pongPaddle.color);
-            DrawCircleV(pongBall.pos, pongBall.radius, pongBall.color);
-            SetWindowTitle(windowTitle);
 
         EndDrawing();
     }
