@@ -1,10 +1,12 @@
 #include "raylib.h"
 #include <stdio.h>
+#include <math.h>
+#include <unistd.h>
 
 #define SCREEN_WIDTH 1080
 #define SCREEN_HEIGHT 720
 
-#define FRAME_RATE 120
+#define FRAME_RATE 60
 
 typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, ENDING} GameScreen;
 
@@ -25,10 +27,18 @@ typedef struct Paddle {
     Vector2 pos;
 } paddle;
 
+void ResetGame(paddle *Paddle, ball *Ball){
+    Ball->pos.x = SCREEN_WIDTH/2;
+    Ball->pos.y = SCREEN_HEIGHT/2;
+
+    Paddle->pos.x = 26;
+    Paddle->pos.y = 100;
+}
+
 int main(void) {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Pong\tFPS: Calculating...");
 
-    paddle pongPaddle = { 2, 0, 20, 125, BLACK, {25, 100}};
+    paddle pongPaddle = { 2, 0, 20, 125, BLACK, {26, 100}};
     ball pongBall = { 2, 0, 50, BLACK, {SCREEN_WIDTH/2, SCREEN_HEIGHT/2}};
 
     GameScreen currScreen = LOGO;
@@ -62,45 +72,56 @@ int main(void) {
 
                 break;
             case GAMEPLAY:
-                if(IsKeyPressed(KEY_ENTER))
+                if(IsKeyDown(KEY_R))
+                    ResetGame(&pongPaddle, &pongBall);
+
+                //ball movement
+                if(pongBall.pos.x < (SCREEN_WIDTH - pongBall.radius + 1)){
+                    if (IsKeyDown(KEY_RIGHT)) pongBall.pos.x += pongBall.deltaSpeed;
+                } else // hit a wall
+                    pongBall.pos.x--;
+                if(pongBall.pos.x > (0 + pongBall.radius - 1) || pongBall.pos.x){
+                    if (IsKeyDown(KEY_LEFT)) pongBall.pos.x -= pongBall.deltaSpeed;
+                } else
+                    pongBall.pos.x++;
+                
+                if(pongBall.pos.y < (SCREEN_HEIGHT - pongBall.radius + 1)){
+                    if (IsKeyDown(KEY_DOWN)) pongBall.pos.y += pongBall.deltaSpeed;
+                } else 
+                    pongBall.pos.y--;
+                if(pongBall.pos.y > (0 + pongBall.radius - 1)){
+                    if (IsKeyDown(KEY_UP)) pongBall.pos.y -= pongBall.deltaSpeed;
+                } else
+                    pongBall.pos.y++;
+
+                // TODO: Calculate when pongBall.pos.x - (pongBall.radius + pongPaddle.width) is about equal to pongPaddle.pos.x but not exactaly
+                if(fabs((pongBall.pos.x - (pongBall.radius + pongPaddle.width)) - pongPaddle.pos.x) < 5.0)
+                //if(pongBall.pos.y == pongPaddle.pos.y && pongBall.pos.x - (pongBall.radius + pongPaddle.width) == pongPaddle.pos.x)
+                    printf("test\n");
+
+                // paddle controls
+                if(pongPaddle.pos.y < (SCREEN_HEIGHT - pongPaddle.height + 1)){
+                    if(IsKeyDown(KEY_DOWN)) pongPaddle.pos.y += pongPaddle.deltaSpeed;
+                } else
+                    pongPaddle.pos.y--;
+                if(pongPaddle.pos.y > (0)){
+                    if(IsKeyDown(KEY_UP)) pongPaddle.pos.y -= pongPaddle.deltaSpeed;
+                } else
+                    pongPaddle.pos.y++;
+
+                if(pongBall.pos.x < pongPaddle.pos.x + pongBall.radius/2)
                     currScreen = ENDING;
 
                 break;
             case ENDING:
+                ResetGame(&pongPaddle, &pongBall);
+
                 if(IsKeyPressed(KEY_ENTER))
                     currScreen = TITLE;
 
                 break;
             default: break;
         }
-
-        if(pongBall.pos.x < (SCREEN_WIDTH - pongBall.radius + 1)){      // && pongBall.pos.x < SCREEN_WIDTH){
-            if (IsKeyDown(KEY_RIGHT)) pongBall.pos.x += pongBall.deltaSpeed;
-        } else
-            pongBall.pos.x--;
-        if(pongBall.pos.x > (0 + pongBall.radius - 1)){
-            if (IsKeyDown(KEY_LEFT)) pongBall.pos.x -= pongBall.deltaSpeed;
-        } else
-            pongBall.pos.x++;
-        
-        if(pongBall.pos.y < (SCREEN_HEIGHT - pongBall.radius + 1)){
-            if (IsKeyDown(KEY_DOWN)) pongBall.pos.y += pongBall.deltaSpeed;
-        } else 
-            pongBall.pos.y--;
-        if(pongBall.pos.y > (0 + pongBall.radius - 1)){
-            if (IsKeyDown(KEY_UP)) pongBall.pos.y -= pongBall.deltaSpeed;
-        } else
-            pongBall.pos.y++;
-
-        // paddle controls
-        if(pongPaddle.pos.y < (SCREEN_HEIGHT - pongPaddle.height + 1)){
-            if(IsKeyDown(KEY_DOWN)) pongPaddle.pos.y += pongPaddle.deltaSpeed;
-        } else
-            pongPaddle.pos.y--;
-        if(pongPaddle.pos.y > (0)){
-            if(IsKeyDown(KEY_UP)) pongPaddle.pos.y -= pongPaddle.deltaSpeed;
-        } else
-            pongPaddle.pos.y++;
 
         BeginDrawing();
             ClearBackground(RAYWHITE);
