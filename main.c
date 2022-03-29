@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <time.h>
 
 #define SCREEN_WIDTH 1080
 #define SCREEN_HEIGHT 720
@@ -16,6 +18,12 @@ typedef struct Ball {
     float speed;
     float deltaSpeed;
     float radius;
+    #define LEFT 567678
+    #define RIGHT 32768
+    #define UP 3467
+    #define DOWN 81267868
+    // to go diagnal do direction = LEFT (yes, bitwise)& UP
+    int direction;
     Color color;
     Vector2 pos;
 } ball;
@@ -25,17 +33,11 @@ typedef struct Paddle {
     float deltaSpeed;
     float width;
     float height;
-    #define LEFT 0
-    #define RIGHT 1
-    #define UP 2
-    #define DOWN 3
-    // to go diagnal do direction = LEFT (yes, bitwise)& UP
-    int direction;
     Color color;
     Vector2 pos;
 } paddle;
 
-void ResetGame(paddle *Paddle, ball *Ball){
+int ResetGame(paddle *Paddle, ball *Ball){
     Ball->pos.x = SCREEN_WIDTH/2;
     Ball->pos.y = SCREEN_HEIGHT/2;
 
@@ -43,34 +45,103 @@ void ResetGame(paddle *Paddle, ball *Ball){
     Paddle->pos.y = 100;
 }
 
+int GetRandomDirection(int wall){
+    int i = rand() % 3; // generate random number from 0 to 2
+
+    switch(wall){
+        case RIGHT:
+            switch(i){
+                case 0:
+                    return LEFT;
+                case 1:
+                    return LEFT | UP;
+                case 2:
+                    return LEFT | DOWN;
+            }
+        case LEFT:
+            switch(i){
+                case 0:
+                    return RIGHT;
+                case 1:
+                    return RIGHT | UP;
+                case 2:
+                    return RIGHT | DOWN;
+            }
+        case UP:
+            switch(i){
+                case 0:
+                    return DOWN;
+                case 1:
+                    return DOWN | RIGHT;
+                case 2:
+                    return DOWN | LEFT;
+            }
+        case DOWN:
+            switch(i){
+                case 0:
+                    return UP;
+                case 1:
+                    return UP | RIGHT;
+                case 2:
+                    return UP | LEFT;
+            }
+    }
+}
+
 void UpdateBallPos(ball *pongBall){
     pongBall->deltaSpeed = pongBall->speed * deltaTime;
     //ball movement
-    if(pongBall->pos.x < (SCREEN_WIDTH - pongBall->radius + 1)){
-        if (IsKeyDown(KEY_RIGHT)) pongBall->pos.x += pongBall->deltaSpeed;
-    } else // hit a wall
-        pongBall->pos.x--;
-    if(pongBall->pos.x > (0 + pongBall->radius - 1) || pongBall->pos.x){
-        if (IsKeyDown(KEY_LEFT)) pongBall->pos.x -= pongBall->deltaSpeed;
-    } else
-        pongBall->pos.x++;
+    if(!(pongBall->pos.x < (SCREEN_WIDTH - pongBall->radius + 1)))     //right 
+        pongBall->direction = GetRandomDirection(RIGHT);
+    if(!(pongBall->pos.x > (0 + pongBall->radius - 1)))                //left
+        pongBall->direction = GetRandomDirection(LEFT);
                 
-    if(pongBall->pos.y < (SCREEN_HEIGHT - pongBall->radius + 1)){
-        if (IsKeyDown(KEY_DOWN)) pongBall->pos.y += pongBall->deltaSpeed;
-    } else 
-        pongBall->pos.y--;
-    if(pongBall->pos.y > (0 + pongBall->radius - 1)){
-        if (IsKeyDown(KEY_UP)) pongBall->pos.y -= pongBall->deltaSpeed;
-    } else
-        pongBall->pos.y++;
+    if(!(pongBall->pos.y < (SCREEN_HEIGHT - pongBall->radius + 1)))    // top
+        pongBall->direction = GetRandomDirection(UP);
+    if(!(pongBall->pos.y > (0 + pongBall->radius - 1)))                //bottom
+        pongBall->direction = GetRandomDirection(DOWN);
+
+    switch(pongBall->direction){
+        case UP:
+            pongBall->pos.y += pongBall->deltaSpeed;
+            break;
+        case DOWN:
+            pongBall->pos.y -= pongBall->deltaSpeed;
+            break;
+        case LEFT:
+            pongBall->pos.x -= pongBall->deltaSpeed;
+            break;
+        case RIGHT:
+            pongBall->pos.x += pongBall->deltaSpeed;
+            break;
+
+        //diagnals
+        case LEFT | UP:
+            pongBall->pos.x -= pongBall->deltaSpeed/2;
+            pongBall->pos.y += pongBall->deltaSpeed/2;
+            break;
+        case LEFT | DOWN:
+            pongBall->pos.x -= pongBall->deltaSpeed/2;
+            pongBall->pos.y -= pongBall->deltaSpeed/2;
+            break;
+        case RIGHT | UP:
+            pongBall->pos.x += pongBall->deltaSpeed/2;
+            pongBall->pos.y += pongBall->deltaSpeed/2;
+            break;
+        case RIGHT | DOWN:
+            pongBall->pos.x += pongBall->deltaSpeed/2;
+            pongBall->pos.y -= pongBall->deltaSpeed/2;
+            break;
+    }
 }
 
 void UpdatePaddlePos(paddle *pongPaddle, ball *pongBall){
     pongPaddle->deltaSpeed = pongPaddle->speed * deltaTime;
     // paddle collision
-    if((pongBall->pos.x - (pongBall->radius + pongPaddle->width) - pongPaddle->pos.x) < 5.0         //x axis
-        && pongBall->pos.y - pongPaddle->pos.y < 126 && pongBall->pos.y - pongPaddle->pos.y > 0)     //y axis
-            pongBall->pos.x += 20;
+    if((pongBall->pos.x - (pongBall->radius + pongPaddle->width) - pongPaddle->pos.x) < 5.0           //x axis
+        && pongBall->pos.y - pongPaddle->pos.y < 126 && pongBall->pos.y - pongPaddle->pos.y > 0){     //y axis
+            pongBall->direction = GetRandomDirection(LEFT);
+    }
 
     // paddle controls
     if(pongPaddle->pos.y < (SCREEN_HEIGHT - pongPaddle->height + 1)){
@@ -84,10 +155,11 @@ void UpdatePaddlePos(paddle *pongPaddle, ball *pongBall){
 }
 
 int main(void) {
+    srand(time(NULL));
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Pong\tFPS: Calculating...");
 
-    paddle pongPaddle = { 2, 0, 20, 125, LEFT, BLACK, {26, 550}};
-    ball pongBall = { 2, 0, 50, BLACK, {SCREEN_WIDTH/2, SCREEN_HEIGHT/2}};
+    paddle pongPaddle = { 2, 0, 20, 125, BLACK, {26, 550}};
+    ball pongBall = { 2, 0, 50, LEFT, BLACK, {SCREEN_WIDTH/2, SCREEN_HEIGHT/2}};
 
     GameScreen currScreen = LOGO;
     char windowTitle[255] = {};
