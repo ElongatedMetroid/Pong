@@ -38,7 +38,7 @@ void ResetGame(paddle *Paddle, ball *Ball){
 int main(void) {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Pong\tFPS: Calculating...");
 
-    paddle pongPaddle = { 2, 0, 20, 125, BLACK, {26, 100}};
+    paddle pongPaddle = { 2, 0, 20, 125, BLACK, {26, 550}};
     ball pongBall = { 2, 0, 50, BLACK, {SCREEN_WIDTH/2, SCREEN_HEIGHT/2}};
 
     GameScreen currScreen = LOGO;
@@ -62,7 +62,7 @@ int main(void) {
             case LOGO:
                 framesCounter++;
 
-                if(framesCounter > FRAME_RATE * 2)
+                //if(framesCounter > FRAME_RATE * 2)
                     currScreen = TITLE;
 
                 break;
@@ -94,10 +94,10 @@ int main(void) {
                 } else
                     pongBall.pos.y++;
 
-                // TODO: Calculate when pongBall.pos.x - (pongBall.radius + pongPaddle.width) is about equal to pongPaddle.pos.x but not exactaly
-                if(fabs((pongBall.pos.x - (pongBall.radius + pongPaddle.width)) - pongPaddle.pos.x) < 5.0)
-                //if(pongBall.pos.y == pongPaddle.pos.y && pongBall.pos.x - (pongBall.radius + pongPaddle.width) == pongPaddle.pos.x)
-                    printf("test\n");
+                //paddle collision
+                if((pongBall.pos.x - (pongBall.radius + pongPaddle.width) - pongPaddle.pos.x) < 5.0         //x axis
+                   && pongBall.pos.y - pongPaddle.pos.y < 126 && pongBall.pos.y - pongPaddle.pos.y > 0)     //y axis
+                    pongBall.pos.x += 20;
 
                 // paddle controls
                 if(pongPaddle.pos.y < (SCREEN_HEIGHT - pongPaddle.height + 1)){
