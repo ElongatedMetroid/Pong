@@ -37,69 +37,102 @@ typedef struct Paddle {
     Vector2 pos;
 } paddle;
 
-int ResetGame(paddle *Paddle, ball *Ball){
+void ResetGame(paddle *Paddle, ball *Ball){
     Ball->pos.x = SCREEN_WIDTH/2;
     Ball->pos.y = SCREEN_HEIGHT/2;
+    Ball->direction = LEFT;
 
     Paddle->pos.x = 26;
     Paddle->pos.y = 100;
 }
 
-int GetRandomDirection(int wall){
+int GetRandomDirection(int wall, ball *pongBall){
     int i = rand() % 3; // generate random number from 0 to 2
 
     switch(wall){
-        case RIGHT:
-            switch(i){
-                case 0:
-                    return LEFT;
-                case 1:
-                    return LEFT | UP;
-                case 2:
-                    return LEFT | DOWN;
+        case RIGHT: // bouncing off right wall
+            if(pongBall->direction == RIGHT){ // if we were moving right before
+                switch(i){
+                    case 0:
+                        return LEFT | UP;
+                    case 1:
+                        return LEFT | DOWN;
+                    case 2:
+                        return LEFT;
+                }
             }
+            else if(pongBall->direction == (UP | RIGHT))
+                return LEFT | UP;
+            else if(pongBall->direction == (DOWN | RIGHT))
+                return LEFT | DOWN;
+            else
+                return LEFT;
         case LEFT:
-            switch(i){
-                case 0:
-                    return RIGHT;
-                case 1:
-                    return RIGHT | UP;
-                case 2:
-                    return RIGHT | DOWN;
+            if(pongBall->direction == LEFT){ // if we were moving right before
+                switch(i){
+                    case 0:
+                        return RIGHT | UP;
+                    case 1:
+                        return RIGHT | DOWN;
+                    case 2:
+                        return RIGHT;
+                }
             }
+            else if(pongBall->direction == (UP | LEFT))
+                return RIGHT | UP;
+            else if(pongBall->direction == (DOWN | LEFT))
+                return RIGHT | DOWN;
+            else
+                return RIGHT;  
         case UP:
-            switch(i){
-                case 0:
-                    return DOWN;
-                case 1:
-                    return DOWN | RIGHT;
-                case 2:
-                    return DOWN | LEFT;
+            if(pongBall->direction == UP){
+                switch(i){
+                    case 0:
+                        return DOWN | LEFT;
+                    case 1:
+                        return DOWN | RIGHT;
+                    default:
+                        return DOWN | LEFT;
+                }
             }
+            else if(pongBall->direction == (UP | RIGHT))
+                return DOWN | RIGHT;
+            else if(pongBall->direction == (UP | LEFT))
+                return DOWN | LEFT;
+            else
+                return DOWN;
         case DOWN:
-            switch(i){
+            if(pongBall->direction == DOWN){
                 case 0:
-                    return UP;
+                    return UP | LEFT;
                 case 1:
                     return UP | RIGHT;
-                case 2:
+                default:
                     return UP | LEFT;
             }
+            else if(pongBall->direction == (DOWN | RIGHT))
+                return UP | RIGHT;
+            else if(pongBall->direction == (DOWN | LEFT))
+                return UP | LEFT;
+            else
+                return UP;
     }
+
+    return 0;
 }
 
 void UpdateBallPos(ball *pongBall){
     pongBall->deltaSpeed = pongBall->speed * deltaTime;
     //ball movement
     if(!(pongBall->pos.x < (SCREEN_WIDTH - pongBall->radius + 1)))     //right 
-        pongBall->direction = GetRandomDirection(RIGHT);
+        pongBall->direction = GetRandomDirection(RIGHT, pongBall);
     if(!(pongBall->pos.x > (0 + pongBall->radius - 1)))                //left
-        pongBall->direction = GetRandomDirection(LEFT);
+        pongBall->direction = GetRandomDirection(LEFT, pongBall);
                 
     if(!(pongBall->pos.y < (SCREEN_HEIGHT - pongBall->radius + 1)))    // top
-        pongBall->direction = GetRandomDirection(UP);
+        pongBall->direction = GetRandomDirection(UP, pongBall);
     if(!(pongBall->pos.y > (0 + pongBall->radius - 1)))                //bottom
-        pongBall->direction = GetRandomDirection(DOWN);
+        pongBall->direction = GetRandomDirection(DOWN, pongBall);
 
     switch(pongBall->direction){
         case UP:
@@ -140,7 +173,7 @@ void UpdatePaddlePos(paddle *pongPaddle, ball *pongBall){
     // paddle collision
     if((pongBall->pos.x - (pongBall->radius + pongPaddle->width) - pongPaddle->pos.x) < 5.0           //x axis
         && pongBall->pos.y - pongPaddle->pos.y < 126 && pongBall->pos.y - pongPaddle->pos.y > 0){     //y axis
-            pongBall->direction = GetRandomDirection(LEFT);
+            pongBall->direction = GetRandomDirection(LEFT, pongBall);
     }
 
     // paddle controls
@@ -159,7 +192,7 @@ int main(void) {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Pong\tFPS: Calculating...");
 
     paddle pongPaddle = { 2, 0, 20, 125, BLACK, {26, 550}};
-    ball pongBall = { 2, 0, 50, LEFT, BLACK, {SCREEN_WIDTH/2, SCREEN_HEIGHT/2}};
+    ball pongBall = { 5, 0, 50, LEFT, BLACK, {SCREEN_WIDTH/2, SCREEN_HEIGHT/2}};
 
     GameScreen currScreen = LOGO;
     char windowTitle[255] = {};
