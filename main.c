@@ -1,41 +1,17 @@
-#include "raylib.h"
+#include <raylib.h>
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
 
-#define SCREEN_WIDTH 1080
-#define SCREEN_HEIGHT 720
-
-#define FRAME_RATE 60
+#include <shared.h>
+#include <paddle.h>
+#include <ball.h>
 
 float deltaTime = 0.0f;
 
 typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, ENDING} GameScreen;
-
-typedef struct Ball {
-    float speed;
-    float deltaSpeed;
-    float radius;
-    #define LEFT 567678
-    #define RIGHT 32768
-    #define UP 3467
-    #define DOWN 81267868
-    // to go diagnal do direction = LEFT (yes, bitwise)& UP
-    int direction;
-    Color color;
-    Vector2 pos;
-} ball;
-
-typedef struct Paddle {
-    float speed;
-    float deltaSpeed;
-    float width;
-    float height;
-    Color color;
-    Vector2 pos;
-} paddle;
 
 void ResetGame(paddle *Paddle, ball *Ball){
     Ball->pos.x = SCREEN_WIDTH/2;
@@ -44,147 +20,6 @@ void ResetGame(paddle *Paddle, ball *Ball){
 
     Paddle->pos.x = 26;
     Paddle->pos.y = 100;
-}
-
-int GetRandomDirection(int wall, ball *pongBall){
-    int i = rand() % 3; // generate random number from 0 to 2
-
-    switch(wall){
-        case RIGHT: // bouncing off right wall
-            if(pongBall->direction == RIGHT){ // if we were moving right before
-                switch(i){
-                    case 0:
-                        return LEFT | UP;
-                    case 1:
-                        return LEFT | DOWN;
-                    case 2:
-                        return LEFT;
-                }
-            }
-            else if(pongBall->direction == (UP | RIGHT))
-                return LEFT | UP;
-            else if(pongBall->direction == (DOWN | RIGHT))
-                return LEFT | DOWN;
-            else
-                return LEFT;
-        case LEFT:
-            if(pongBall->direction == LEFT){ // if we were moving right before
-                switch(i){
-                    case 0:
-                        return RIGHT | UP;
-                    case 1:
-                        return RIGHT | DOWN;
-                    case 2:
-                        return RIGHT;
-                }
-            }
-            else if(pongBall->direction == (UP | LEFT))
-                return RIGHT | UP;
-            else if(pongBall->direction == (DOWN | LEFT))
-                return RIGHT | DOWN;
-            else
-                return RIGHT;  
-        case UP:
-            if(pongBall->direction == UP){
-                switch(i){
-                    case 0:
-                        return DOWN | LEFT;
-                    case 1:
-                        return DOWN | RIGHT;
-                    default:
-                        return DOWN | LEFT;
-                }
-            }
-            else if(pongBall->direction == (UP | RIGHT))
-                return DOWN | RIGHT;
-            else if(pongBall->direction == (UP | LEFT))
-                return DOWN | LEFT;
-            else
-                return DOWN;
-        case DOWN:
-            if(pongBall->direction == DOWN){
-                case 0:
-                    return UP | LEFT;
-                case 1:
-                    return UP | RIGHT;
-                default:
-                    return UP | LEFT;
-            }
-            else if(pongBall->direction == (DOWN | RIGHT))
-                return UP | RIGHT;
-            else if(pongBall->direction == (DOWN | LEFT))
-                return UP | LEFT;
-            else
-                return UP;
-    }
-
-    return 0;
-}
-
-void UpdateBallPos(ball *pongBall){
-    pongBall->deltaSpeed = pongBall->speed * deltaTime;
-    //ball movement
-    if(!(pongBall->pos.x < (SCREEN_WIDTH - pongBall->radius + 1)))     //right 
-        pongBall->direction = GetRandomDirection(RIGHT, pongBall);
-    if(!(pongBall->pos.x > (0 + pongBall->radius - 1)))                //left
-        pongBall->direction = GetRandomDirection(LEFT, pongBall);
-                
-    if(!(pongBall->pos.y < (SCREEN_HEIGHT - pongBall->radius + 1)))    // top
-        pongBall->direction = GetRandomDirection(UP, pongBall);
-    if(!(pongBall->pos.y > (0 + pongBall->radius - 1)))                //bottom
-        pongBall->direction = GetRandomDirection(DOWN, pongBall);
-
-    switch(pongBall->direction){
-        case UP:
-            pongBall->pos.y += pongBall->deltaSpeed;
-            break;
-        case DOWN:
-            pongBall->pos.y -= pongBall->deltaSpeed;
-            break;
-        case LEFT:
-            pongBall->pos.x -= pongBall->deltaSpeed;
-            break;
-        case RIGHT:
-            pongBall->pos.x += pongBall->deltaSpeed;
-            break;
-
-        //diagnals
-        case LEFT | UP:
-            pongBall->pos.x -= pongBall->deltaSpeed/2;
-            pongBall->pos.y += pongBall->deltaSpeed/2;
-            break;
-        case LEFT | DOWN:
-            pongBall->pos.x -= pongBall->deltaSpeed/2;
-            pongBall->pos.y -= pongBall->deltaSpeed/2;
-            break;
-        case RIGHT | UP:
-            pongBall->pos.x += pongBall->deltaSpeed/2;
-            pongBall->pos.y += pongBall->deltaSpeed/2;
-            break;
-        case RIGHT | DOWN:
-            pongBall->pos.x += pongBall->deltaSpeed/2;
-            pongBall->pos.y -= pongBall->deltaSpeed/2;
-            break;
-    }
-}
-
-void UpdatePaddlePos(paddle *pongPaddle, ball *pongBall){
-    pongPaddle->deltaSpeed = pongPaddle->speed * deltaTime;
-    // paddle collision
-    if((pongBall->pos.x - (pongBall->radius + pongPaddle->width) - pongPaddle->pos.x) < 5.0           //x axis
-        && pongBall->pos.y - pongPaddle->pos.y < 126 && pongBall->pos.y - pongPaddle->pos.y > 0){     //y axis
-            pongBall->direction = GetRandomDirection(LEFT, pongBall);
-    }
-
-    // paddle controls
-    if(pongPaddle->pos.y < (SCREEN_HEIGHT - pongPaddle->height + 1)){
-        if(IsKeyDown(KEY_DOWN)) pongPaddle->pos.y += pongPaddle->deltaSpeed;
-    } else
-        pongPaddle->pos.y--;
-    if(pongPaddle->pos.y > (0)){
-        if(IsKeyDown(KEY_UP)) pongPaddle->pos.y -= pongPaddle->deltaSpeed;
-    } else
-        pongPaddle->pos.y++;
 }
 
 int main(void) {
@@ -206,7 +41,6 @@ int main(void) {
         lastFrame = currentFrame;
         currentFrame = GetTime();
         deltaTime = (currentFrame - lastFrame) * 100;
-        sprintf(windowTitle, "Pong\tFPS: %i", GetFPS());
 
         switch(currScreen){
             case LOGO:
@@ -263,6 +97,7 @@ int main(void) {
 
                     DrawRectangle(pongPaddle.pos.x, pongPaddle.pos.y, pongPaddle.width, pongPaddle.height, pongPaddle.color);
                     DrawCircleV(pongBall.pos, pongBall.radius, pongBall.color);
+                    sprintf(windowTitle, "Pong\tFPS: %i", GetFPS());
                     SetWindowTitle(windowTitle);
 
                     DrawText("GAMEPLAY SCREEN", 20, 20, 40, MAROON);
