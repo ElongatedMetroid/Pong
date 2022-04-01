@@ -4,7 +4,7 @@
 #define SCREEN_WIDTH 1080
 #define SCREEN_HEIGHT 720
 
-#define FRAME_RATE 1000
+#define FRAME_RATE 60
 
 extern float deltaTime;
 

@@ -1,3 +1,5 @@
+#define RAYGUI_IMPLEMENTATION
+
 #include <raylib.h>
 #include <stdio.h>
 #include <math.h>
@@ -8,19 +10,11 @@
 #include <shared.h>
 #include <paddle.h>
 #include <ball.h>
+#include <game.h>
+
+#include <GUI/startmenu.h>
 
 float deltaTime = 0.0f;
-
-typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, ENDING} GameScreen;
-
-void ResetGame(paddle *Paddle, ball *Ball){
-    Ball->pos.x = SCREEN_WIDTH/2;
-    Ball->pos.y = SCREEN_HEIGHT/2;
-    Ball->direction = LEFT;
-
-    Paddle->pos.x = 26;
-    Paddle->pos.y = 100;
-}
 
 int main(void) {
     srand(time(NULL));
@@ -48,11 +42,6 @@ int main(void) {
 
                 //if(framesCounter > FRAME_RATE * 2)
                     currScreen = TITLE;
-
-                break;
-            case TITLE:
-                if(IsKeyPressed(KEY_ENTER))
-                    currScreen = GAMEPLAY;
 
                 break;
             case GAMEPLAY:
@@ -86,10 +75,7 @@ int main(void) {
                     DrawText("WAIT for 2 SECONDS...", 290, 220, 20, GRAY);
                     break;
                 case TITLE:
-                    // TODO: Draw TITLE screen here!
-                    DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, GREEN);
-                    DrawText("TITLE SCREEN", 20, 20, 40, DARKGREEN);
-                    DrawText("PRESS ENTER or TAP to JUMP to GAMEPLAY SCREEN", 120, 220, 20, DARKGREEN);
+                    ShowTitleGui(&currScreen);
                     break;
 
                 case GAMEPLAY:
@@ -100,7 +86,6 @@ int main(void) {
                     sprintf(windowTitle, "Pong\tFPS: %i", GetFPS());
                     SetWindowTitle(windowTitle);
 
-                    DrawText("GAMEPLAY SCREEN", 20, 20, 40, MAROON);
                     break;
 
                 case ENDING:

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <shared.h>
 
+//numbers are random so bitwise operations/combining directions works
 #define LEFT 567678
 #define RIGHT 32768
 #define UP 3467
